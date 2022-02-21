@@ -14,8 +14,8 @@ by Alois Kneip and Dominik Liebl
 You can install the development version of ppfunreg like so:
 
 ``` r
-# install.packages("devtools")
-devtools::install_github("r-lib/usethis")
+## install.packages("devtools")
+## devtools::install_github("WIP")
 ```
 
 ## Example
@@ -23,7 +23,7 @@ devtools::install_github("r-lib/usethis")
 This is a basic example which shows you how to solve a common problem:
 
 ``` r
-library(ppfunreg)
+## library(ppfunreg)
 ## basic example code
 ## WIP
 ```
