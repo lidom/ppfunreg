@@ -3,3 +3,7 @@
 .Rdata
 .httr-oauth
 .DS_Store
+main.R
+Make_package.R
+sim.R
+ARCHIV
