@@ -8,12 +8,16 @@
 remove.packages("ppfunreg")
 
 ## Create/update documentation and (re-)write NAMESPACE
-devtools::document("ppfunreg")
+devtools::document()
 
 ## CRAN-check pkg
-# devtools::check("ppfunreg")       # check the package
+# devtools::check()       # check the package
 
 ## Install
 devtools::install_local("ppfunreg", force = TRUE)
 ##
 ## #################################
+
+
+# usethis::use_package("splines2")
+

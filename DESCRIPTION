@@ -1,15 +1,12 @@
 Package: ppfunreg
 Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Version: 0.0.1.9000
 Authors@R: 
-    person("Dominik", "Liebl", , "r.packages.mail@gmail.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
+    person("Dominik", "Liebl", , "r.packages.mail@gmail.com", role = c("aut", "cre"))
 Description: What the package does (one paragraph).
 License: MIT + file LICENSE
 Encoding: UTF-8
-Remotes: 
-  christophrust/FunRegPoI
-Imports: 
-  FunRegPoI
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
+Imports: 
+    splines2
