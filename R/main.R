@@ -8,7 +8,7 @@
 #' @param rho_rng The range c(min(rho_rng), max(rho_rng)) is used for finding 
 #' the GCV-optimal smoothing parameter rho, if rho = NULL. 
 #' @export
-ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){# Y=Y_mat; X=X; grd=grid; rho = NULL; rho_rng = c(0, 100)
+ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){# Y=Y_sim; X=X_sim; grd=grid; rho = 1e-7; rho_rng = c(0, 100)
   ##
   a       <- base::min(grd)
   b       <- base::max(grd)
@@ -43,14 +43,20 @@ ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){# Y=Y_mat; X=X;
   }, simplify = "array")
   
   ## Need to start at t=3 (cubic splines)
-  beta_hat_t <- base::sapply(3:p, FUN=function(t){
+  beta_hat_t <- base::sapply(3:p, FUN=function(t) {
+    # t=p; Y=Y_sim; X=delta_ar[1:t,,t];grd=grid[1:t]
     tmp <- beta_fun_estim(Y         = Y[t,],
                           X         = delta_ar[1:t,,t],
                           grd       = grd[1:t], 
                           rho       = rho,
-                          rho_rng   = rho_rng)# t=50;Y=Y_mat[t,];X=delta_ar[1:t,,t];grd=grd[1:t];rho=rho;rho_rng=rho_rng
+                          rho_rng   = rho_rng)
     ##
-    return(c(tmp$beta_hat_fun(grd), rep(NA,p-t)))})
+    return(c(tmp$beta_hat_fun, rep(NA,p-t)))})
+
+    # plot(x  = grid, beta_fun(grid[t], grid), type="l", 
+    # ylim = range( tmp$beta_hat_fun(grd[1:t]), beta_fun(grid[t], grid) ))
+    # lines(x = grid[1:t], y = tmp$beta_hat_fun(grd[1:t]) * (1 / grid[t] ) )
+
   ##
   # clm1       <- beta_hat_t[,1]; clm1[2:3] <- NA
   # clm2       <- beta_hat_t[,1]; clm2[3]   <- NA
@@ -137,33 +143,64 @@ beta_fun_estim <- function (Y, X, grd, rho, rho_rng) {
   }
   ##
   alpha_hat    <- (1/n) * solve(tcrossprod(X)/(n * p) + rho * A_m) %*% X %*% Y
+  alpha_hat    <- alpha_hat / (b-a)
   
   #alpha_hat
   
-  beta_hat_fun <- function(t){
-    splines2::naturalSpline(x              = t, 
-                            knots          = (b-a) * grd[-c(1,length(grd))] + a, 
-                            Boundary.knots = (b-a) * grd[ c(1,length(grd))] + a, 
-                            intercept      = TRUE, 
-                            derivs         = 0) %*% solve(t(B_mat) %*% B_mat) %*% t(B_mat) %*% alpha_hat * (b-a)
-  }
-  ## cbind(beta_hat_fun( (b-a)*grd +a), alpha_hat * (b-a))
+  # beta_hat_fun <- function(t){
+  #   t <- t * (b-a) + a 
+  #   B_mat  <- splines2::naturalSpline(x              = grd, 
+  #                                     knots          = grd[-c(1,length(grd))], 
+  #                                     Boundary.knots = grd[ c(1,length(grd))], 
+  #                                     intercept      = TRUE, 
+  #                                     derivs         = 0)
+  #   splines2::naturalSpline(x              = t, 
+  #                           knots          = grd[-c(1,length(grd))], 
+  #                           Boundary.knots = grd[ c(1,length(grd))], 
+  #                           intercept      = TRUE, 
+  #                           derivs         = 0) %*% solve(t(B_mat) %*% B_mat) %*% t(B_mat) %*% alpha_hat 
+  # }
+  ## 
+  ## 
   results   <- list(
-    "beta_hat_fun" = beta_hat_fun,
+    "beta_hat_fun" = alpha_hat,
     "rho"          = rho)
   return(results)
 }
 
-# # t=p;Y=Y[t,];X=delta_ar[1:t,,t];grd=grd[1:t];rho=rho;rho_rng=rho_rng
+# t=10; Y=Y_sim[t,]; X=X_sim[1:t,]; grd=grid[1:t]; rho=1e-7; rho_rng=rho_rng
+
 # test <- beta_fun_estim(Y=Y, X=X, grd=grd, rho=1e-7, rho_rng=rho_rng)
-# 
-# plot(y=test$beta_hat_fun(grd), x=grd, type="l")
-# 
+
+# betaHat <- test$beta_hat_fun     #( (grid[1:t] - min(grid))/(max(grid)-min(grid)) )  / (max(grid) - min(grid))
+
+# plot(x   = grid, 
+#      y   = beta_fun(grid[t], grid), type="l", 
+#     ylim = range( betaHat, beta_fun(grid[t], grid) ) )
+# lines(x = grid[1:t], y = betaHat , col="red")
 
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## OLD OLD #########
+## OLD OLD #########
+## OLD OLD #########
 # estBetaCraKneSa <- function (Y, X, A_m, X_B, rho, rho_rng) 
 # {
 #   n   <- length(Y)

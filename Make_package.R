@@ -14,7 +14,7 @@ devtools::document()
 # devtools::check()       # check the package
 
 ## Install
-devtools::install_local("ppfunreg", force = TRUE)
+devtools::install_local(force = TRUE)
 ##
 ## #################################
 
