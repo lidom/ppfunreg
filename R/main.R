@@ -10,14 +10,15 @@
 #' @export
 ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){# Y=Y_sim; X=X_sim; grd=grid; rho = 1e-7; rho_rng = c(0, 100)
   ##
-  a       <- base::min(grd)
-  b       <- base::max(grd)
-  grd     <- (grd - a)/(b-a) # standardize grid to [0,1]
+  grd_orig <- grd
+  a        <- base::min(grd)
+  b        <- base::max(grd)
+  grd      <- (grd - a)/(b-a) # standardize grid to [0,1]
   ##
-  Y_orig  <- Y
-  X_orig  <- X
-  n       <- base::ncol(Y)
-  p       <- base::nrow(Y)
+  Y_orig   <- Y
+  X_orig   <- X
+  n        <- base::ncol(Y)
+  p        <- base::nrow(Y)
   ##  
   if(p > 101){
     base::warning("Just to let you know: large 'grd' vectors make the estimation procedure slow.")
@@ -44,22 +45,24 @@ ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){# Y=Y_sim; X=X_
   
   ## Need to start at t=3 (cubic splines)
   beta_hat_t <- base::sapply(3:p, FUN=function(t) {
-    # t=p; Y=Y_sim; X=delta_ar[1:t,,t];grd=grid[1:t]
+    # t=70 
+    ##Y=Y_sim; X=delta_ar[1:t,,t];grd=grd[1:t]
     tmp <- beta_fun_estim(Y         = Y[t,],
                           X         = delta_ar[1:t,,t],
                           grd       = grd[1:t], 
                           rho       = rho,
                           rho_rng   = rho_rng)
-    ##
-    return(c(tmp$beta_hat_fun, rep(NA,p-t)))})
 
-    # plot(x  = grid, beta_fun(grid[t], grid), type="l", 
-    # ylim = range( tmp$beta_hat_fun(grd[1:t]), beta_fun(grid[t], grid) ))
-    # lines(x = grid[1:t], y = tmp$beta_hat_fun(grd[1:t]) * (1 / grid[t] ) )
+    beta_hat_t <- tmp$beta_hat_fun 
 
-  ##
-  # clm1       <- beta_hat_t[,1]; clm1[2:3] <- NA
-  # clm2       <- beta_hat_t[,1]; clm2[3]   <- NA
+    # plot(x  = grd_orig, y = beta_fun(grd_orig[t], grd_orig), type="l", 
+    # ylim = range(beta_hat_t, beta_fun(grd_orig[t], grd_orig) ))
+    # lines(x = grd_orig[1:t], y = beta_hat_t, col="red")
+
+    return(c(beta_hat_t, rep(NA,p-t)))})
+
+   
+
   ##
   beta_hat_t <- cbind(rep(NA,p),rep(NA,p),beta_hat_t)
   #
@@ -76,20 +79,27 @@ ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){# Y=Y_sim; X=X_
                            covX_n[t,1:t]/covX_n[t,t]  * diff(grd)[1]
            return(result)})
   
-  alpha_hat    <- alphaStar_hat - c(0,NA,tmp)
-  alpha_hat[2] <- mean(alpha_hat[c(1,3)])
+  alpha_hat    <- alphaStar_hat - c(NA,NA,tmp)
+  #alpha_hat[2] <- mean(alpha_hat[c(1,3)])
 
   # par(mfrow=c(2,1))
   # matplot(x=grid, y=cbind(alphaStar, alphaStar_hat), type="l")
   # matplot(x=grid, y=cbind(alpha_fun(t = grid), alpha_hat), type="l")
   # par(mfrow=c(1,1))
   
-  
+  beta_hat_t <- beta_hat_t / (b-a)
+
+   # t<-20
+  #  beta_hat <- na.omit(beta_hat_t[,t])
+  #  plot(x  = grd_orig, y = beta_fun(grd_orig[t], grd_orig), type="l", 
+  #   ylim = range(beta_hat, beta_fun(grd_orig[t], grd_orig) ))
+  #   lines(x = grd_orig[1:t], y = beta_hat, col="red")
+
   ##
   result <- list("alpha_hat"     = alpha_hat, 
                  "alphaStar_hat" = alphaStar_hat, 
                  "beta_hat"      = beta_hat_t,
-                 "grid"          = grd)
+                 "grid"          = grd_orig)
   class(result) <- "ppfunreg"
   return(result)
   
@@ -184,7 +194,60 @@ beta_fun_estim <- function (Y, X, grd, rho, rho_rng) {
 
 
 
+#' Estimation function for the classic function-on-function linear regression model 
+#'
+#' @param Y Outcome
+#' @param X Predictor 
+#' @param grd Grid
+#' @param rho Smoothing parameter. If left unspecified (rho = NULL), then rho is 
+#' determined by Generalized Cross Validation (GCV).
+#' @param rho_rng The range c(min(rho_rng), max(rho_rng)) is used for finding 
+#' the GCV-optimal smoothing parameter rho, if rho = NULL.
+#' @export
+ffreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){# Y=Y; X=X; grd=grid; rho = NULL; rho_rng = NULL
+  ##
+  grd_orig <- grd
+  a        <- base::min(grd)
+  b        <- base::max(grd)
+  grd      <- (grd - a)/(b-a) # standardize grid to [0,1]
+  ##
+  Y_orig  <- Y
+  X_orig  <- X
+  n       <- base::ncol(Y)
+  p       <- base::nrow(Y)
+  a       <- base::min(grd)
+  b       <- base::max(grd)
+  ##  
+  if(p > 101){
+    base::warning("Just to let you know: large 'grd' vectors make the estimation procedure slow.")
+  }
+  ##
+  ## centering the data:
+  mean_Y  <- base::rowMeans(Y)
+  mean_X  <- base::rowMeans(X)
+  Y       <- base::apply(Y, 2, function(u) u - mean_Y)
+  X       <- base::apply(X, 2, function(u) u - mean_X)
+  ##
+  ## Need to start at t=3 (cubic splines)
+  beta_hat_t <- base::sapply(3:p, FUN=function(t){
+    tmp <- beta_fun_estim(Y         = Y[t,],
+                          X         = X[1:t,],
+                          grd       = grd[1:t], 
+                          rho       = rho,
+                          rho_rng   = rho_rng)
+        beta_hat_t <- tmp$beta_hat_fun 
 
+    return(c(beta_hat_t, rep(NA,p-t)))})
+  ##
+  beta_hat_t <- cbind(rep(NA,p),rep(NA,p),beta_hat_t)
+  beta_hat_t <- beta_hat_t / (b-a)
+  ##
+  result <- list("beta_hat"      = beta_hat_t,
+                 "grid"          = grd,
+                 "rho"           = rho)
+  class(result) <- "ffreg"
+  return(result)
+}
 
 
 
@@ -289,52 +352,7 @@ beta_fun_estim <- function (Y, X, grd, rho, rho_rng) {
 
 
 
-#' Estimation function for the classic function-on-function linear regression model 
-#'
-#' @param Y Outcome
-#' @param X Predictor 
-#' @param grd Grid
-#' @param rho Smoothing parameter. If left unspecified (rho = NULL), then rho is 
-#' determined by Generalized Cross Validation (GCV).
-#' @param rho_rng The range c(min(rho_rng), max(rho_rng)) is used for finding 
-#' the GCV-optimal smoothing parameter rho, if rho = NULL.
-#' @export
-ffreg <- function(Y, X, grd, rho = NULL, rho_rng = c(1e-10, 10)){# Y=Y; X=X; grd=grid; rho = NULL; rho_rng = NULL
-  ##
-  Y_orig  <- Y
-  X_orig  <- X
-  n       <- base::ncol(Y)
-  p       <- base::nrow(Y)
-  a       <- base::min(grd)
-  b       <- base::max(grd)
-  ##  
-  if(p > 101){
-    base::warning("Just to let you know: large 'grd' vectors make the estimation procedure slow.")
-  }
-  ##
-  ## centering the data:
-  mean_Y  <- base::rowMeans(Y)
-  mean_X  <- base::rowMeans(X)
-  Y       <- base::apply(Y, 2, function(u) u - mean_Y)
-  X       <- base::apply(X, 2, function(u) u - mean_X)
-  ##
-  ## Need to start at t=3 (cubic splines)
-  beta_hat_t <- base::sapply(3:p, FUN=function(t){
-    tmp <- beta_fun_estim(Y         = Y[t,],
-                          X         = X[1:t,],
-                          grd       = grd[1:t], 
-                          rho       = rho,
-                          rho_rng   = rho_rng)
-    return(c(tmp$estBeta,rep(NA,p-t)))})
-  ##
-  beta_hat_t <- cbind(rep(NA,p),rep(NA,p),beta_hat_t)
-  ##
-  result <- list("beta_hat"      = beta_hat_t,
-                 "grid"          = grd,
-                 "rho"           = rho)
-  class(result) <- "ffreg"
-  return(result)
-}
+
 
 
 #' #' Visualizes estimation result from \link{ppfunreg}.
