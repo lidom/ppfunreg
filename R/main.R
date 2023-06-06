@@ -47,26 +47,28 @@ ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){# Y=Y_sim; X=X_
   beta_hat_t <- base::sapply(3:p, FUN=function(t) {
     # t=70 
     ##Y=Y_sim; X=delta_ar[1:t,,t];grd=grd[1:t]
-    tmp <- beta_fun_estim(Y         = Y[t,],
-                          X         = delta_ar[1:t,,t],
-                          grd       = grd[1:t], 
-                          rho       = rho,
-                          rho_rng   = rho_rng)
-
+    tmp <- .beta_fun_estim(Y         = Y[t,],
+                           X         = delta_ar[1:t,,t],
+                           grd       = grd[1:t], 
+                           rho       = rho,
+                           rho_rng   = rho_rng)
+    rho_t      <- tmp$rho
     beta_hat_t <- tmp$beta_hat_fun 
 
     # plot(x  = grd_orig, y = beta_fun(grd_orig[t], grd_orig), type="l", 
     # ylim = range(beta_hat_t, beta_fun(grd_orig[t], grd_orig) ))
     # lines(x = grd_orig[1:t], y = beta_hat_t, col="red")
 
-    return(c(beta_hat_t, rep(NA,p-t)))})
-
-   
-
+    return(c(beta_hat_t, rep(NA,p-t), rho_t))})
   ##
-  beta_hat_t <- cbind(rep(NA,p),rep(NA,p),beta_hat_t)
-  #
-  
+  rho_t      <- beta_hat_t[(p+1),]
+  rho_t      <- c(NA, NA, rho_t)
+  beta_hat_t <- beta_hat_t[-(p+1),]
+  #beta_hat_t <- cbind(rep(NA,p), rep(NA,p), beta_hat_t)
+  beta_hat_t <- cbind(c(beta_hat_t[  1,3], rep(NA, p-1)), 
+                      c(beta_hat_t[1:2,3], rep(NA, p-2)), 
+                        beta_hat_t)
+  ##  
   # t <- 25
   # matplot(x=grd[1:t],
   #         y=cbind(beta_fun(t = grd[t], s = grd[1:t]),
@@ -86,29 +88,37 @@ ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){# Y=Y_sim; X=X_
   # matplot(x=grid, y=cbind(alphaStar, alphaStar_hat), type="l")
   # matplot(x=grid, y=cbind(alpha_fun(t = grid), alpha_hat), type="l")
   # par(mfrow=c(1,1))
-  
-  beta_hat_t <- beta_hat_t / (b-a)
 
-   # t<-20
+  tmp_beta_hat_t <- replace(c(beta_hat_t), is.na(c(beta_hat_t)), 0)
+  tmp_beta_hat_t <- matrix(tmp_beta_hat_t, nrow = p, ncol = p)
+  beta0_hat_t    <- as.vector(
+    mean_Y - 
+    mean_X * alpha_hat - 
+    mean_X %*% tmp_beta_hat_t * diff(grd)[1])
+  beta_hat_t     <- beta_hat_t / (b-a)
+
+  # t<-20
   #  beta_hat <- na.omit(beta_hat_t[,t])
   #  plot(x  = grd_orig, y = beta_fun(grd_orig[t], grd_orig), type="l", 
   #   ylim = range(beta_hat, beta_fun(grd_orig[t], grd_orig) ))
   #   lines(x = grd_orig[1:t], y = beta_hat, col="red")
 
+
+  
   ##
   result <- list("alpha_hat"     = alpha_hat, 
                  "alphaStar_hat" = alphaStar_hat, 
+                 "beta0_hat_t"   = beta0_hat_t,
                  "beta_hat"      = beta_hat_t,
+                 "rho"           = rho_t,
                  "grid"          = grd_orig)
+  ##               
   class(result) <- "ppfunreg"
+  ##
   return(result)
-  
 }
 
-# when beta is estimated over [0,1], then we need to scale it back by (b-a) for [a,b]. 
-
-
-beta_fun_estim <- function (Y, X, grd, rho, rho_rng) {
+.beta_fun_estim <- function (Y, X, grd, rho, rho_rng) {
   ##
   a            <- base::min(grd)
   b            <- base::max(grd)
@@ -117,25 +127,37 @@ beta_fun_estim <- function (Y, X, grd, rho, rho_rng) {
   p            <- length(grd)
   n            <- length(as.vector(Y))
   ##
-  polymat      <- as.matrix(cbind(1,grd)) # Polynomial t^0 and t^1 basis functions evaluated at 'grd'
-  P_mat        <- polymat %*% base::solve(t(polymat) %*% polymat) %*% base::t(polymat)
+  # Polynomial t^0 and t^1 basis functions evaluated at 'grd'
+  polymat      <- as.matrix(cbind(1,grd)) 
+  P_mat        <- polymat %*% 
+                  base::solve(t(polymat) %*% polymat) %*% 
+                  base::t(polymat)
   ##
-  B_mat        <- splines2::naturalSpline(x              = grd, 
-                                          knots          = grd[-c(1,length(grd))], 
-                                          Boundary.knots = grd[c(1,length(grd))], 
-                                          intercept      = TRUE, 
-                                          derivs         = 0)
+  B_mat        <- splines2::naturalSpline(
+    x              = grd, 
+    knots          = grd[-c(1,length(grd))], 
+    Boundary.knots = grd[c(1,length(grd))], 
+    intercept      = TRUE, 
+    derivs         = 0)
+  ##  
   grd4integr   <- seq(0, 1, len=1001)
-  bd2_mat      <- splines2::naturalSpline(x              = grd4integr, 
-                                          knots          = grd[-c(1,length(grd))], 
-                                          Boundary.knots = grd[c(1,length(grd))], 
-                                          intercept      = TRUE, 
-                                          derivs         = 2)
+  ##
+  bd2_mat      <- splines2::naturalSpline(
+    x              = grd4integr, 
+    knots          = grd[-c(1,length(grd))], 
+    Boundary.knots = grd[c(1,length(grd))], 
+    intercept      = TRUE, 
+    derivs         = 2)
+  ##
   integr_bd2sq <- t(bd2_mat) %*% bd2_mat / length(grd4integr)
-  A_m_star     <- B_mat %*% solve(t(B_mat) %*% B_mat) %*% integr_bd2sq %*% solve(t(B_mat) %*% B_mat) %*% t(B_mat)
+  ##
+  A_m_star     <- B_mat %*% 
+                  solve(t(B_mat) %*% B_mat) %*% 
+                  integr_bd2sq   %*% 
+                  solve(t(B_mat) %*% B_mat) %*% t(B_mat)
+  ##
   A_m          <- P_mat + p * A_m_star
   ##
-  
   if (is.null(rho)) {
     optRhoViaGCV <- function(r){
       H_r <- (1/n) * t(X) %*% solve(tcrossprod(X)/(n * p) + r * A_m) %*% X
@@ -152,8 +174,8 @@ beta_fun_estim <- function (Y, X, grd, rho, rho_rng) {
     rho    <- optRho$minimum
   }
   ##
-  alpha_hat    <- (1/n) * solve(tcrossprod(X)/(n * p) + rho * A_m) %*% X %*% Y
-  alpha_hat    <- alpha_hat / (b-a)
+  beta_hat    <- (1/n) * solve(tcrossprod(X)/(n * p) + rho * A_m) %*% X %*% Y
+  beta_hat    <- beta_hat / (b-a)
   
   #alpha_hat
   
@@ -173,7 +195,7 @@ beta_fun_estim <- function (Y, X, grd, rho, rho_rng) {
   ## 
   ## 
   results   <- list(
-    "beta_hat_fun" = alpha_hat,
+    "beta_hat_fun" = beta_hat,
     "rho"          = rho)
   return(results)
 }
@@ -230,11 +252,11 @@ ffreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){# Y=Y; X=X; grd=gr
   ##
   ## Need to start at t=3 (cubic splines)
   beta_hat_t <- base::sapply(3:p, FUN=function(t){
-    tmp <- beta_fun_estim(Y         = Y[t,],
-                          X         = X[1:t,],
-                          grd       = grd[1:t], 
-                          rho       = rho,
-                          rho_rng   = rho_rng)
+    tmp <- .beta_fun_estim(Y         = Y[t,],
+                           X         = X[1:t,],
+                           grd       = grd[1:t], 
+                           rho       = rho,
+                           rho_rng   = rho_rng)
         beta_hat_t <- tmp$beta_hat_fun 
 
     return(c(beta_hat_t, rep(NA,p-t)))})
@@ -243,7 +265,7 @@ ffreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){# Y=Y; X=X; grd=gr
   beta_hat_t <- beta_hat_t / (b-a)
   ##
   result <- list("beta_hat"      = beta_hat_t,
-                 "grid"          = grd,
+                 "grid"          = grd_orig,
                  "rho"           = rho)
   class(result) <- "ffreg"
   return(result)

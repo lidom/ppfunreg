@@ -4,7 +4,7 @@
 \alias{ffreg}
 \title{Estimation function for the classic function-on-function linear regression model}
 \usage{
-ffreg(Y, X, grd, rho = NULL, rho_rng = c(1e-10, 10))
+ffreg(Y, X, grd, rho = NULL, rho_rng = c(0, 100))
 }
 \arguments{
 \item{Y}{Outcome}
