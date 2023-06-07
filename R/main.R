@@ -64,6 +64,7 @@ ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){# Y=Y_sim; X=X_
   rho_t      <- beta_hat_t[(p+1),]
   rho_t      <- c(NA, NA, rho_t)
   beta_hat_t <- beta_hat_t[-(p+1),]
+
   #beta_hat_t <- cbind(rep(NA,p), rep(NA,p), beta_hat_t)
   beta_hat_t <- cbind(c(beta_hat_t[  1,3], rep(NA, p-1)), 
                       c(beta_hat_t[1:2,3], rep(NA, p-2)), 
@@ -89,12 +90,14 @@ ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){# Y=Y_sim; X=X_
   # matplot(x=grid, y=cbind(alpha_fun(t = grid), alpha_hat), type="l")
   # par(mfrow=c(1,1))
 
+  ## Intercept
   tmp_beta_hat_t <- replace(c(beta_hat_t), is.na(c(beta_hat_t)), 0)
   tmp_beta_hat_t <- matrix(tmp_beta_hat_t, nrow = p, ncol = p)
   beta0_hat_t    <- as.vector(
     mean_Y - 
     mean_X * alpha_hat - 
     mean_X %*% tmp_beta_hat_t * diff(grd)[1])
+  ## Rescale beta  
   beta_hat_t     <- beta_hat_t / (b-a)
 
   # t<-20
@@ -257,16 +260,34 @@ ffreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){# Y=Y; X=X; grd=gr
                            grd       = grd[1:t], 
                            rho       = rho,
                            rho_rng   = rho_rng)
-        beta_hat_t <- tmp$beta_hat_fun 
-
-    return(c(beta_hat_t, rep(NA,p-t)))})
+    rho_t      <- tmp$rho
+    beta_hat_t <- tmp$beta_hat_fun 
+    ##
+    return(c(beta_hat_t, rep(NA,p-t), rho_t))})
   ##
-  beta_hat_t <- cbind(rep(NA,p),rep(NA,p),beta_hat_t)
+  rho_t      <- beta_hat_t[(p+1),]
+  rho_t      <- c(NA, NA, rho_t)
+  beta_hat_t <- beta_hat_t[-(p+1),]
+  ##
+  #beta_hat_t <- cbind(rep(NA,p), rep(NA,p), beta_hat_t)
+  beta_hat_t <- cbind(c(beta_hat_t[  1,3], rep(NA, p-1)), 
+                      c(beta_hat_t[1:2,3], rep(NA, p-2)), 
+                        beta_hat_t)
+
+  ## Intercept
+  tmp_beta_hat_t <- replace(c(beta_hat_t), is.na(c(beta_hat_t)), 0)
+  tmp_beta_hat_t <- matrix(tmp_beta_hat_t, nrow = p, ncol = p)
+  beta0_hat_t    <- as.vector(
+    mean_Y - 
+    mean_X %*% tmp_beta_hat_t * diff(grd)[1])
+  
+  ## Rescale beta  
   beta_hat_t <- beta_hat_t / (b-a)
   ##
-  result <- list("beta_hat"      = beta_hat_t,
-                 "grid"          = grd_orig,
-                 "rho"           = rho)
+  result <- list("beta0_hat_t"   = beta0_hat_t,
+                 "beta_hat"      = beta_hat_t,
+                 "rho"           = rho_t,
+                 "grid"          = grd_orig)
   class(result) <- "ffreg"
   return(result)
 }
