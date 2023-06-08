@@ -8,7 +8,8 @@
 #' @param rho_rng The range c(min(rho_rng), max(rho_rng)) is used for finding 
 #' the GCV-optimal smoothing parameter rho, if rho = NULL. 
 #' @export
-ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){# Y=Y_sim; X=X_sim; grd=grid; rho = 1e-7; rho_rng = c(0, 100)
+ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){
+  # Y=Y; X=X; grd=grid; rho = NULL; rho_rng = c(0, 100)
   ##
   grd_orig <- grd
   a        <- base::min(grd)
@@ -44,26 +45,28 @@ ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){# Y=Y_sim; X=X_
   }, simplify = "array")
   
   ## Need to start at t=3 (cubic splines)
-  beta_hat_t <- base::sapply(3:p, FUN=function(t) {
-    # t=70 
+  estim_results <- base::sapply(
+    X   = 3:p, 
+    FUN = function(t) {
+    # t=30 
     ##Y=Y_sim; X=delta_ar[1:t,,t];grd=grd[1:t]
     tmp <- .beta_fun_estim(Y         = Y[t,],
                            X         = delta_ar[1:t,,t],
                            grd       = grd[1:t], 
                            rho       = rho,
                            rho_rng   = rho_rng)
-    rho_t      <- tmp$rho
-    beta_hat_t <- tmp$beta_hat_fun 
+    rho_t          <- tmp$rho
+    beta_hat_fun_t <- tmp$beta_hat_fun 
 
     # plot(x  = grd_orig, y = beta_fun(grd_orig[t], grd_orig), type="l", 
     # ylim = range(beta_hat_t, beta_fun(grd_orig[t], grd_orig) ))
     # lines(x = grd_orig[1:t], y = beta_hat_t, col="red")
 
-    return(c(beta_hat_t, rep(NA,p-t), rho_t))})
+    return(c(beta_hat_fun_t, rep(NA, p - t), rho_t))})
   ##
-  rho_t      <- beta_hat_t[(p+1),]
+  rho_t      <- estim_results[(p+1),]
   rho_t      <- c(NA, NA, rho_t)
-  beta_hat_t <- beta_hat_t[-(p+1),]
+  beta_hat_t <- estim_results[-(p+1),]
 
   #beta_hat_t <- cbind(rep(NA,p), rep(NA,p), beta_hat_t)
   beta_hat_t <- cbind(c(beta_hat_t[  1,3], rep(NA, p-1)), 
@@ -254,20 +257,22 @@ ffreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){# Y=Y; X=X; grd=gr
   X       <- base::apply(X, 2, function(u) u - mean_X)
   ##
   ## Need to start at t=3 (cubic splines)
-  beta_hat_t <- base::sapply(3:p, FUN=function(t){
+  estim_results <- base::sapply(
+    X   = 3:p, 
+    FUN = function(t){
     tmp <- .beta_fun_estim(Y         = Y[t,],
                            X         = X[1:t,],
                            grd       = grd[1:t], 
                            rho       = rho,
                            rho_rng   = rho_rng)
-    rho_t      <- tmp$rho
-    beta_hat_t <- tmp$beta_hat_fun 
+    rho_t          <- tmp$rho
+    beta_hat_fun_t <- tmp$beta_hat_fun 
     ##
-    return(c(beta_hat_t, rep(NA,p-t), rho_t))})
+    return(c(beta_hat_fun_t, rep(NA,p-t), rho_t))})
   ##
-  rho_t      <- beta_hat_t[(p+1),]
+  rho_t      <- estim_results[(p+1),]
   rho_t      <- c(NA, NA, rho_t)
-  beta_hat_t <- beta_hat_t[-(p+1),]
+  beta_hat_t <- estim_results[-(p+1),]
   ##
   #beta_hat_t <- cbind(rep(NA,p), rep(NA,p), beta_hat_t)
   beta_hat_t <- cbind(c(beta_hat_t[  1,3], rep(NA, p-1)), 
