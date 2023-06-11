@@ -50,7 +50,7 @@ ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){
     FUN = function(t) {
     # t=30 
     ##Y=Y_sim; X=delta_ar[1:t,,t];grd=grd[1:t]
-    tmp <- .beta_fun_estim(Y         = Y[t,],# - alphaStar_hat[t] - X[t,],
+    tmp <- .beta_fun_estim(Y         = Y[t,] - alphaStar_hat[t] * X[t,],
                            X         = delta_ar[1:t,,t],
                            grd       = grd[1:t], 
                            rho       = rho,
