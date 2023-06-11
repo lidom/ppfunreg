@@ -9,7 +9,7 @@
 #' the GCV-optimal smoothing parameter rho, if rho = NULL. 
 #' @export
 ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){
-  # Y=Y; X=X; grd=grid; rho = NULL; rho_rng = c(0, 100)
+  # Y=Y_sim; X=X_sim; grd=grid; rho = NULL; rho_rng = c(0, 100)
   ##
   grd_orig <- grd
   a        <- base::min(grd)
@@ -18,8 +18,8 @@ ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){
   ##
   Y_orig   <- Y
   X_orig   <- X
-  n        <- base::ncol(Y)
-  p        <- base::nrow(Y)
+  n        <- base::ncol(X)
+  p        <- base::nrow(X)
   ##  
   if(p > 101){
     base::warning("Just to let you know: large 'grd' vectors make the estimation procedure slow.")
@@ -50,7 +50,7 @@ ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){
     FUN = function(t) {
     # t=30 
     ##Y=Y_sim; X=delta_ar[1:t,,t];grd=grd[1:t]
-    tmp <- .beta_fun_estim(Y         = Y[t,],
+    tmp <- .beta_fun_estim(Y         = Y[t,],# - alphaStar_hat[t] - X[t,],
                            X         = delta_ar[1:t,,t],
                            grd       = grd[1:t], 
                            rho       = rho,
@@ -125,6 +125,11 @@ ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){
 }
 
 .beta_fun_estim <- function (Y, X, grd, rho, rho_rng) {
+  ## t <- 15; Y = Y[t,] - alphaStar[t] - X[t,]; X = delta_ar[1:t,,t]; grd = grd[1:t]
+  ## 
+                           
+  ##
+  grd_orig     <- grd   # [0,t]
   ##
   a            <- base::min(grd)
   b            <- base::max(grd)
@@ -166,21 +171,40 @@ ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){
   ##
   if (is.null(rho)) {
     optRhoViaGCV <- function(r){
-      H_r <- (1/n) * t(X) %*% solve(tcrossprod(X)/(n * p) + r * A_m) %*% X
-      gcv <- ( sum((Y - H_r %*% Y)^2)/n )/( (1 - sum(diag(H_r))/n )^2 )
-      return(gcv)
+      ### https://epub.ub.uni-muenchen.de/1627/1/paper_247.pdf
+      #H_r <- (1 / (n * p) )        * (t(X) %*% solve((tcrossprod(X) / (n * p^2)) + (r/p) * A_m) %*% X) 
+      H_r <- (1 / (n * p * (b-a)) ) *  t(X) %*%  (solve((tcrossprod(X) / (n * p^2)) + (r/p) * A_m) %*% X ) * diff(grd_orig)[1] 
+      gcv <- ( sum((Y - H_r %*% Y)^2) / n ) / ( (1 - (sum(diag(H_r)) / n) )^2 )
+      return(
+        c(gcv)#,sum(diag(H_r %*% H_r)),sum((Y - H_r %*% Y)^2))
+      )
     }
+
+# cbind(
+#     (H_r %*% Y ) ,
+#     (t(X) %*% ((1 / (n * p * (b-a)) ) * (solve((tcrossprod(X) / (n * p^2)) + (r/p) * A_m) %*% X %*% Y))) * diff(grd_orig)[1] ,
+#     c(na.omit(beta_fun(grid[t], grid) ) %*% X * diff(grd_orig)[1])
+# )
+
+# matplot(x=grid[1:t], 
+# y = cbind(((1 / (n * p * (b-a)) ) * (solve((tcrossprod(X) / (n * p^2)) + (r/p) * A_m) %*% X %*% Y)),
+# na.omit(beta_fun(grid[t], grid) )))
+
+    ## 
+    ##
     # optRhoViaGCV <- Vectorize(optRhoViaGCV)
-    # optRhoViaGCV(.5)
-    # rr <- seq(.Machine$double.eps, 1e-5, len=100)
+    # rr <- exp(seq(-45, -1, len=50))
     # yy <- optRhoViaGCV(r=rr)
-    # plot(y=yy, x=rr, type="b")
-    # plot(y=yy[-c(1:20)], x=rr[-c(1:20)], type="b")
+    # yy
+    # length(yy[1,]); which.min(yy[1,])
+    # rr[which.min(yy[1,])]
+    # plot(y=yy[1,], x=rr, type="b", log="xy")
+    ###
     optRho <- stats::optimize(f = optRhoViaGCV, interval = rho_rng)
     rho    <- optRho$minimum
   }
   ##
-  beta_hat    <- (1/n) * solve(tcrossprod(X)/(n * p) + rho * A_m) %*% X %*% Y
+  beta_hat    <- ((1 / n) * solve(tcrossprod(X) / (n * p) + rho * A_m) %*% X) %*% Y
   beta_hat    <- beta_hat / (b-a)
   
   #alpha_hat
@@ -232,7 +256,8 @@ ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){
 #' @param rho_rng The range c(min(rho_rng), max(rho_rng)) is used for finding 
 #' the GCV-optimal smoothing parameter rho, if rho = NULL.
 #' @export
-ffreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){# Y=Y; X=X; grd=grid; rho = NULL; rho_rng = NULL
+ffreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){
+  # Y=Y_sim; X=X_sim; grd=grid; rho = NULL; rho_rng = NULL
   ##
   grd_orig <- grd
   a        <- base::min(grd)
@@ -241,8 +266,8 @@ ffreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){# Y=Y; X=X; grd=gr
   ##
   Y_orig  <- Y
   X_orig  <- X
-  n       <- base::ncol(Y)
-  p       <- base::nrow(Y)
+  n       <- base::ncol(X)
+  p       <- base::nrow(X)
   a       <- base::min(grd)
   b       <- base::max(grd)
   ##  
@@ -287,7 +312,7 @@ ffreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){# Y=Y; X=X; grd=gr
     mean_X %*% tmp_beta_hat_t * diff(grd)[1])
   
   ## Rescale beta  
-  beta_hat_t <- beta_hat_t / (b-a)
+  beta_hat_t <- beta_hat_t #* (b-a)
   ##
   result <- list("beta0_hat_t"   = beta0_hat_t,
                  "beta_hat"      = beta_hat_t,
