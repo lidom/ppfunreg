@@ -125,145 +125,145 @@ ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){
 }
 
 
-#' Estimation function
-#'
-#' @param Y Outcome. A matrix with ncol(Y) = 'sample size' and nrow(Y) = 'number of grid 'grd' points' 
-#' @param X Predictor. A matrix with ncol(X) = 'sample size' and nrow(X) = 'number of grid 'grd' points' 
-#' @param grd Grid between 0 and 1.
-#' @param rho Smoothing parameter. If left unspecified (rho = NULL), then rho is 
-#' determined by Generalized Cross Validation (GCV).
-#' @param rho_rng The range c(min(rho_rng), max(rho_rng)) is used for finding 
-#' the GCV-optimal smoothing parameter rho, if rho = NULL. 
-#' @export
-ppfunreg2 <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){
-  # Y=Y_sim; X=X_sim; grd=grid; rho = NULL; rho_rng = c(0, 100)
-  ##
-  grd_orig <- grd
-  a        <- base::min(grd)
-  b        <- base::max(grd)
-  grd      <- (grd - a)/(b-a) # standardize grid to [0,1]
-  ##
-  n        <- base::ncol(X)
-  p        <- base::nrow(X)
-  ##
-  if(p > 101){
-    base::warning("Just to let you know: large 'grd' vectors make the estimation procedure slow.")
-  }
-  ##
-  n1       <- floor(n/2)
-  n2       <- n1 
-  ##
-  Y_orig1   <- Y1 <- Y[,1:n1]
-  X_orig1   <- X1 <- X[,1:n1]
-  Y_orig2   <- Y2 <- Y[,(n1+1):(n1+n2)]
-  X_orig2   <- X2 <- X[,(n1+1):(n1+n2)]  
-  ##
-  ## centering the data:
-  mean_Y1  <- base::rowMeans(Y1)
-  mean_X1  <- base::rowMeans(X1)
-  Y1       <- base::apply(Y1, 2, function(u) u - mean_Y1)
-  X1       <- base::apply(X1, 2, function(u) u - mean_X1)
-  mean_Y2  <- base::rowMeans(Y2)
-  mean_X2  <- base::rowMeans(X2)
-  Y2       <- base::apply(Y2, 2, function(u) u - mean_Y2)
-  X2       <- base::apply(X2, 2, function(u) u - mean_X2)
-  ##
-  ## covariances:
-  covX_n1  <- stats::cov(t(X1))
-  covX_n2  <- stats::cov(t(X2))
-  ##
-  ## estimation of alpha star:
-  alphaStar_hat1   <- base::rowMeans(Y1 *X1)/diag(covX_n1)
-  ## matplot(y=cbind(alphaStar, alphaStar_hat1), x=grd, type="l")
-  ##
-  ## dimensions of delta(s,i,t): c(p,n,p)
-  delta_ar2 <- base::sapply(1:p, FUN=function(t){
-    X2 - base::matrix(covX_n2[t,]/covX_n2[t,t], nrow = p, ncol=n2) *
-      base::matrix(X2[t,], nrow=p, ncol=n2, byrow = TRUE)
-  }, simplify = "array")
+# #' Estimation function
+# #'
+# #' @param Y Outcome. A matrix with ncol(Y) = 'sample size' and nrow(Y) = 'number of grid 'grd' points' 
+# #' @param X Predictor. A matrix with ncol(X) = 'sample size' and nrow(X) = 'number of grid 'grd' points' 
+# #' @param grd Grid between 0 and 1.
+# #' @param rho Smoothing parameter. If left unspecified (rho = NULL), then rho is 
+# #' determined by Generalized Cross Validation (GCV).
+# #' @param rho_rng The range c(min(rho_rng), max(rho_rng)) is used for finding 
+# #' the GCV-optimal smoothing parameter rho, if rho = NULL. 
+# #' @export
+# ppfunreg2 <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){
+#   # Y=Y_sim; X=X_sim; grd=grid; rho = NULL; rho_rng = c(0, 100)
+#   ##
+#   grd_orig <- grd
+#   a        <- base::min(grd)
+#   b        <- base::max(grd)
+#   grd      <- (grd - a)/(b-a) # standardize grid to [0,1]
+#   ##
+#   n        <- base::ncol(X)
+#   p        <- base::nrow(X)
+#   ##
+#   if(p > 101){
+#     base::warning("Just to let you know: large 'grd' vectors make the estimation procedure slow.")
+#   }
+#   ##
+#   n1       <- floor(n/2)
+#   n2       <- n1 
+#   ##
+#   Y_orig1   <- Y1 <- Y[,1:n1]
+#   X_orig1   <- X1 <- X[,1:n1]
+#   Y_orig2   <- Y2 <- Y[,(n1+1):(n1+n2)]
+#   X_orig2   <- X2 <- X[,(n1+1):(n1+n2)]  
+#   ##
+#   ## centering the data:
+#   mean_Y1  <- base::rowMeans(Y1)
+#   mean_X1  <- base::rowMeans(X1)
+#   Y1       <- base::apply(Y1, 2, function(u) u - mean_Y1)
+#   X1       <- base::apply(X1, 2, function(u) u - mean_X1)
+#   mean_Y2  <- base::rowMeans(Y2)
+#   mean_X2  <- base::rowMeans(X2)
+#   Y2       <- base::apply(Y2, 2, function(u) u - mean_Y2)
+#   X2       <- base::apply(X2, 2, function(u) u - mean_X2)
+#   ##
+#   ## covariances:
+#   covX_n1  <- stats::cov(t(X1))
+#   covX_n2  <- stats::cov(t(X2))
+#   ##
+#   ## estimation of alpha star:
+#   alphaStar_hat1   <- base::rowMeans(Y1 *X1)/diag(covX_n1)
+#   ## matplot(y=cbind(alphaStar, alphaStar_hat1), x=grd, type="l")
+#   ##
+#   ## dimensions of delta(s,i,t): c(p,n,p)
+#   delta_ar2 <- base::sapply(1:p, FUN=function(t){
+#     X2 - base::matrix(covX_n2[t,]/covX_n2[t,t], nrow = p, ncol=n2) *
+#       base::matrix(X2[t,], nrow=p, ncol=n2, byrow = TRUE)
+#   }, simplify = "array")
   
-  ## Need to start at t=3 (cubic splines)
-  estim_results <- base::sapply(
-    X   = 3:p, 
-    FUN = function(t) {
-    # t=30 
-    ##Y=Y_sim; X=delta_ar[1:t,,t];grd=grd[1:t]
-    # Y_tmp <- c(scale(x      = Y2[t,] - alphaStar_hat1[t] * X2[t,], 
-    #                  center = TRUE, 
-    #                  scale  = FALSE))
-    tmp <- .beta_fun_estim(Y         = Y2[t,] - alphaStar_hat1[t] * X2[t,],
-                           X         = delta_ar2[1:t,,t],
-                           grd       = grd[1:t], 
-                           rho       = rho,
-                           rho_rng   = rho_rng)
-    rho_t          <- tmp$rho
-    beta_hat_fun_t <- tmp$beta_hat_fun 
+#   ## Need to start at t=3 (cubic splines)
+#   estim_results <- base::sapply(
+#     X   = 3:p, 
+#     FUN = function(t) {
+#     # t=30 
+#     ##Y=Y_sim; X=delta_ar[1:t,,t];grd=grd[1:t]
+#     # Y_tmp <- c(scale(x      = Y2[t,] - alphaStar_hat1[t] * X2[t,], 
+#     #                  center = TRUE, 
+#     #                  scale  = FALSE))
+#     tmp <- .beta_fun_estim(Y         = Y2[t,] - alphaStar_hat1[t] * X2[t,],
+#                            X         = delta_ar2[1:t,,t],
+#                            grd       = grd[1:t], 
+#                            rho       = rho,
+#                            rho_rng   = rho_rng)
+#     rho_t          <- tmp$rho
+#     beta_hat_fun_t <- tmp$beta_hat_fun 
 
-    # plot(x  = grd_orig, y = beta_fun(grd_orig[t], grd_orig), type="l", 
-    # ylim = range(beta_hat_t, beta_fun(grd_orig[t], grd_orig) ))
-    # lines(x = grd_orig[1:t], y = beta_hat_t, col="red")
+#     # plot(x  = grd_orig, y = beta_fun(grd_orig[t], grd_orig), type="l", 
+#     # ylim = range(beta_hat_t, beta_fun(grd_orig[t], grd_orig) ))
+#     # lines(x = grd_orig[1:t], y = beta_hat_t, col="red")
 
-    return(c(beta_hat_fun_t, rep(NA, p - t), rho_t))})
-  ##
-  rho_t      <- estim_results[(p+1),]
-  rho_t      <- c(NA, NA, rho_t)
-  beta_hat_t <- estim_results[-(p+1),]
+#     return(c(beta_hat_fun_t, rep(NA, p - t), rho_t))})
+#   ##
+#   rho_t      <- estim_results[(p+1),]
+#   rho_t      <- c(NA, NA, rho_t)
+#   beta_hat_t <- estim_results[-(p+1),]
 
-  #beta_hat_t <- cbind(rep(NA,p), rep(NA,p), beta_hat_t)
-  beta_hat_t <- cbind(c(beta_hat_t[  1,3], rep(NA, p-1)), 
-                      c(beta_hat_t[1:2,3], rep(NA, p-2)), 
-                        beta_hat_t)
-  ##  
-  # t <- 25
-  # matplot(x=grd[1:t],
-  #         y=cbind(beta_fun(t = grd[t], s = grd[1:t]),
-  #                 na.omit(beta_t_mat[,t])), type="l")
+#   #beta_hat_t <- cbind(rep(NA,p), rep(NA,p), beta_hat_t)
+#   beta_hat_t <- cbind(c(beta_hat_t[  1,3], rep(NA, p-1)), 
+#                       c(beta_hat_t[1:2,3], rep(NA, p-2)), 
+#                         beta_hat_t)
+#   ##  
+#   # t <- 25
+#   # matplot(x=grd[1:t],
+#   #         y=cbind(beta_fun(t = grd[t], s = grd[1:t]),
+#   #                 na.omit(beta_t_mat[,t])), type="l")
   
-  ## integral_0^t beta_hat(t,s)_* sigmaQuotient ds
-  tmp <- sapply(3:p,
-         FUN=function(t){
-           result <- stats::na.omit(beta_hat_t[,t])  %*%
-                           covX_n2[t,1:t]/covX_n2[t,t]  * diff(grd)[1]
-           return(result)})
+#   ## integral_0^t beta_hat(t,s)_* sigmaQuotient ds
+#   tmp <- sapply(3:p,
+#          FUN=function(t){
+#            result <- stats::na.omit(beta_hat_t[,t])  %*%
+#                            covX_n2[t,1:t]/covX_n2[t,t]  * diff(grd)[1]
+#            return(result)})
   
-  alpha_hat    <- alphaStar_hat1 - c(NA,NA,tmp)
-  #alpha_hat[2] <- mean(alpha_hat[c(1,3)])
+#   alpha_hat    <- alphaStar_hat1 - c(NA,NA,tmp)
+#   #alpha_hat[2] <- mean(alpha_hat[c(1,3)])
 
-  # par(mfrow=c(2,1))
-  # matplot(x=grid, y=cbind(alphaStar, alphaStar_hat), type="l")
-  # matplot(x=grid, y=cbind(alpha_fun(t = grid), alpha_hat), type="l")
-  # par(mfrow=c(1,1))
+#   # par(mfrow=c(2,1))
+#   # matplot(x=grid, y=cbind(alphaStar, alphaStar_hat), type="l")
+#   # matplot(x=grid, y=cbind(alpha_fun(t = grid), alpha_hat), type="l")
+#   # par(mfrow=c(1,1))
 
-  ## Intercept
-  tmp_beta_hat_t <- replace(c(beta_hat_t), is.na(c(beta_hat_t)), 0)
-  tmp_beta_hat_t <- matrix(tmp_beta_hat_t, nrow = p, ncol = p)
-  beta0_hat_t    <- as.vector(
-    mean_Y2 - 
-    mean_X2 * alpha_hat - 
-    mean_X2 %*% tmp_beta_hat_t * diff(grd)[1])
-  ## Rescale beta  
-  beta_hat_t     <- beta_hat_t / (b-a)
+#   ## Intercept
+#   tmp_beta_hat_t <- replace(c(beta_hat_t), is.na(c(beta_hat_t)), 0)
+#   tmp_beta_hat_t <- matrix(tmp_beta_hat_t, nrow = p, ncol = p)
+#   beta0_hat_t    <- as.vector(
+#     mean_Y2 - 
+#     mean_X2 * alpha_hat - 
+#     mean_X2 %*% tmp_beta_hat_t * diff(grd)[1])
+#   ## Rescale beta  
+#   beta_hat_t     <- beta_hat_t / (b-a)
 
-  # t<-20
-  #  beta_hat <- na.omit(beta_hat_t[,t])
-  #  plot(x  = grd_orig, y = beta_fun(grd_orig[t], grd_orig), type="l", 
-  #   ylim = range(beta_hat, beta_fun(grd_orig[t], grd_orig) ))
-  #   lines(x = grd_orig[1:t], y = beta_hat, col="red")
+#   # t<-20
+#   #  beta_hat <- na.omit(beta_hat_t[,t])
+#   #  plot(x  = grd_orig, y = beta_fun(grd_orig[t], grd_orig), type="l", 
+#   #   ylim = range(beta_hat, beta_fun(grd_orig[t], grd_orig) ))
+#   #   lines(x = grd_orig[1:t], y = beta_hat, col="red")
 
 
   
-  ##
-  result <- list("alpha_hat"     = alpha_hat, 
-                 "alphaStar_hat" = alphaStar_hat1, 
-                 "beta0_hat_t"   = beta0_hat_t,
-                 "beta_hat"      = beta_hat_t,
-                 "rho"           = rho_t,
-                 "grid"          = grd_orig)
-  ##               
-  class(result) <- "ppfunreg2"
-  ##
-  return(result)
-}
+#   ##
+#   result <- list("alpha_hat"     = alpha_hat, 
+#                  "alphaStar_hat" = alphaStar_hat1, 
+#                  "beta0_hat_t"   = beta0_hat_t,
+#                  "beta_hat"      = beta_hat_t,
+#                  "rho"           = rho_t,
+#                  "grid"          = grd_orig)
+#   ##               
+#   class(result) <- "ppfunreg2"
+#   ##
+#   return(result)
+# }
 
 .beta_fun_estim <- function (Y, X, grd, rho, rho_rng) {
   ## t <- 15; Y = Y[t,] - alphaStar[t] - X[t,]; X = delta_ar[1:t,,t]; grd = grd[1:t]
