@@ -68,10 +68,10 @@ ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){
   rho_t      <- c(NA, NA, rho_t)
   beta_hat_t <- estim_results[-(p+1),]
 
-  #beta_hat_t <- cbind(rep(NA,p), rep(NA,p), beta_hat_t)
-  beta_hat_t <- cbind(c(beta_hat_t[  1,3], rep(NA, p-1)), 
-                      c(beta_hat_t[1:2,3], rep(NA, p-2)), 
-                        beta_hat_t)
+  beta_hat_t <- cbind(rep(NA,p), rep(NA,p), beta_hat_t)
+  # beta_hat_t <- cbind(c(beta_hat_t[  1,3], rep(NA, p-1)), 
+  #                     c(beta_hat_t[1:2,3], rep(NA, p-2)), 
+  #                       beta_hat_t)
   ##  
   # t <- 25
   # matplot(x=grd[1:t],
@@ -102,6 +102,9 @@ ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){
     mean_X %*% tmp_beta_hat_t * diff(grd)[1])
   ## Rescale beta  
   beta_hat_t     <- beta_hat_t / (b-a)
+  ##
+  beta0_hat_t[1:2] <- NA
+  #beta_hat_t[1:2,]  <- NA #beta_hat_t #* (b-a)
 
   # t<-20
   #  beta_hat <- na.omit(beta_hat_t[,t])
@@ -114,7 +117,7 @@ ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){
   ##
   result <- list("alpha_hat"     = alpha_hat, 
                  "alphaStar_hat" = alphaStar_hat, 
-                 "beta0_hat_t"   = beta0_hat_t,
+                 "beta0_hat"     = beta0_hat_t,
                  "beta_hat"      = beta_hat_t,
                  "rho"           = rho_t,
                  "grid"          = grd_orig)
@@ -440,10 +443,10 @@ ffreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){
   rho_t      <- c(NA, NA, rho_t)
   beta_hat_t <- estim_results[-(p+1),]
   ##
-  #beta_hat_t <- cbind(rep(NA,p), rep(NA,p), beta_hat_t)
-  beta_hat_t <- cbind(c(beta_hat_t[  1,3], rep(NA, p-1)), 
-                      c(beta_hat_t[1:2,3], rep(NA, p-2)), 
-                        beta_hat_t)
+  beta_hat_t <- cbind(rep(NA,p), rep(NA,p), beta_hat_t)
+  # beta_hat_t <- cbind(c(beta_hat_t[  1,3], rep(NA, p-1)), 
+  #                     c(beta_hat_t[1:2,3], rep(NA, p-2)), 
+  #                       beta_hat_t)
 
   ## Intercept
   tmp_beta_hat_t <- replace(c(beta_hat_t), is.na(c(beta_hat_t)), 0)
@@ -453,9 +456,12 @@ ffreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){
     mean_X %*% tmp_beta_hat_t * diff(grd)[1])
   
   ## Rescale beta  
-  beta_hat_t <- beta_hat_t #* (b-a)
+  beta_hat_t     <- beta_hat_t / (b-a)
+  ## 
+  beta0_hat_t[1:2]  <- NA
+  #beta_hat_t[1:2,]  <- NA #beta_hat_t #* (b-a)
   ##
-  result <- list("beta0_hat_t"   = beta0_hat_t,
+  result <- list("beta0_hat"     = beta0_hat_t,
                  "beta_hat"      = beta_hat_t,
                  "rho"           = rho_t,
                  "grid"          = grd_orig)
