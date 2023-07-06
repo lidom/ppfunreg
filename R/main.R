@@ -35,7 +35,7 @@ ppfunreg <- function(Y, X, grd, rho = NULL, rho_rng = c(0, 100)){
   covX_n  <- stats::cov(t(X))
   ##
   ## estimation of alpha star:
-  alphaStar_hat   <- base::rowMeans(Y *X)/diag(covX_n)
+  alphaStar_hat   <- base::diag(stats::cov(t(Y), t(X)))/base::diag(covX_n)
   ## matplot(y=cbind(alphaStar, alphaStar_hat), x=grd, type="l")
   ##
   ## dimensions of delta(s,i,t): c(p,n,p)
